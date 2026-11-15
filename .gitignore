@@ -86,6 +86,8 @@ frontend/dist-ssr/
 
 # --- SQLite & Local Databases ---
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 *.sqlite3
 ai_panel_studio.db

@@ -223,9 +223,10 @@ class SqlAlchemyDiscussionRepository(IDiscussionRepository):
                 )
 
             for c in agg.consensus_items:
+                c_scoped_id = f"{agg.id}_{c.id}" if not c.id.startswith(f"{agg.id}_") else c.id
                 m.consensus_items.append(
                     ConsensusItemModel(
-                        id=c.id,
+                        id=c_scoped_id,
                         discussion_id=agg.id,
                         statement=c.statement,
                         supporting_agents=json.dumps(
@@ -238,9 +239,10 @@ class SqlAlchemyDiscussionRepository(IDiscussionRepository):
                 )
 
             for d in agg.divergence_items:
+                d_scoped_id = f"{agg.id}_{d.id}" if not d.id.startswith(f"{agg.id}_") else d.id
                 m.divergence_items.append(
                     DivergenceItemModel(
-                        id=d.id,
+                        id=d_scoped_id,
                         discussion_id=agg.id,
                         tension=d.tension,
                         opposing_stances=json.dumps(
@@ -313,8 +315,9 @@ class SqlAlchemyDiscussionRepository(IDiscussionRepository):
             # Reconcile consensus items
             existing_c = {c.id: c for c in m.consensus_items}
             for c in agg.consensus_items:
-                if c.id in existing_c:
-                    ec = existing_c[c.id]
+                c_scoped_id = f"{agg.id}_{c.id}" if not c.id.startswith(f"{agg.id}_") else c.id
+                if c_scoped_id in existing_c:
+                    ec = existing_c[c_scoped_id]
                     ec.statement = c.statement
                     ec.supporting_agents = json.dumps(
                         c.supporting_agents, ensure_ascii=False
@@ -324,7 +327,7 @@ class SqlAlchemyDiscussionRepository(IDiscussionRepository):
                 else:
                     m.consensus_items.append(
                         ConsensusItemModel(
-                            id=c.id,
+                            id=c_scoped_id,
                             discussion_id=agg.id,
                             statement=c.statement,
                             supporting_agents=json.dumps(
@@ -339,8 +342,9 @@ class SqlAlchemyDiscussionRepository(IDiscussionRepository):
             # Reconcile divergence items
             existing_d = {d.id: d for d in m.divergence_items}
             for d in agg.divergence_items:
-                if d.id in existing_d:
-                    ed = existing_d[d.id]
+                d_scoped_id = f"{agg.id}_{d.id}" if not d.id.startswith(f"{agg.id}_") else d.id
+                if d_scoped_id in existing_d:
+                    ed = existing_d[d_scoped_id]
                     ed.tension = d.tension
                     ed.opposing_stances = json.dumps(
                         d.opposing_stances, ensure_ascii=False
@@ -350,7 +354,7 @@ class SqlAlchemyDiscussionRepository(IDiscussionRepository):
                 else:
                     m.divergence_items.append(
                         DivergenceItemModel(
-                            id=d.id,
+                            id=d_scoped_id,
                             discussion_id=agg.id,
                             tension=d.tension,
                             opposing_stances=json.dumps(

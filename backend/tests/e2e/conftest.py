@@ -7,7 +7,7 @@ mock environment isolation, and SSE collector factories.
 import asyncio
 import os
 import uuid
-from typing import AsyncIterator, Callable, Optional
+from typing import Any, AsyncIterator, Callable, Optional
 import pytest
 import httpx
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
@@ -169,14 +169,89 @@ async def test_db(tmp_path) -> AsyncIterator[async_sessionmaker[AsyncSession]]:
         await engine.dispose()
 
 
+class StreamingASGITransport(httpx.ASGITransport):
+    """Custom ASGI Transport supporting live streaming (SSE) during test runs without blocking."""
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        queue: asyncio.Queue = asyncio.Queue()
+        status_code = None
+        headers = []
+        started = asyncio.Event()
+        response_complete = asyncio.Event()
+
+        request_body_chunks = request.stream.__aiter__()
+        request_complete = False
+
+        async def receive() -> dict[str, Any]:
+            nonlocal request_complete
+            if request_complete:
+                await response_complete.wait()
+                return {"type": "http.disconnect"}
+            try:
+                body = await request_body_chunks.__anext__()
+            except StopAsyncIteration:
+                request_complete = True
+                return {"type": "http.request", "body": b"", "more_body": False}
+            return {"type": "http.request", "body": body, "more_body": True}
+
+        async def send(message: dict[str, Any]) -> None:
+            nonlocal status_code, headers
+            if message["type"] == "http.response.start":
+                status_code = message["status"]
+                headers = message.get("headers", [])
+                started.set()
+            elif message["type"] == "http.response.body":
+                await queue.put(message.get("body", b""))
+                if not message.get("more_body", False):
+                    response_complete.set()
+                    await queue.put(None)
+
+        scope = {
+            "type": "http",
+            "asgi": {"version": "3.0"},
+            "http_version": "1.1",
+            "method": request.method,
+            "headers": [(k.lower(), v) for (k, v) in request.headers.raw],
+            "scheme": request.url.scheme,
+            "path": request.url.path,
+            "raw_path": request.url.raw_path.split(b"?")[0],
+            "query_string": request.url.query,
+            "server": (request.url.host, request.url.port),
+            "client": self.client,
+            "root_path": self.root_path,
+        }
+        app_task = asyncio.create_task(self.app(scope, receive, send))
+
+        await started.wait()
+
+        class Stream(httpx.AsyncByteStream):
+            async def __aiter__(self):
+                while True:
+                    chunk = await queue.get()
+                    if chunk is None:
+                        break
+                    if chunk:
+                        yield chunk
+
+            async def aclose(self):
+                response_complete.set()
+                app_task.cancel()
+                try:
+                    await app_task
+                except (asyncio.CancelledError, Exception):
+                    pass
+
+        return httpx.Response(status_code, headers=headers, stream=Stream())
+
+
 @pytest.fixture
 async def async_client(test_db) -> AsyncIterator[httpx.AsyncClient]:
     """
-    Asynchronous HTTP client bound to FastAPI application via ASGITransport.
-    Executes in-memory at maximum speed while respecting complete HTTP semantics.
+    Asynchronous HTTP client bound to FastAPI application via StreamingASGITransport.
+    Executes in-memory at maximum speed while respecting complete HTTP and SSE streaming semantics.
     """
     assert app is not None, "FastAPI app could not be imported from app.main"
-    transport = httpx.ASGITransport(app=app)
+    transport = StreamingASGITransport(app=app)
     async with httpx.AsyncClient(
         transport=transport,
         base_url="http://testserver",

@@ -8,6 +8,7 @@ jitter streaming.
 import asyncio
 import hashlib
 import json
+import os
 import random
 import re
 from typing import (
@@ -762,7 +763,11 @@ class MockLLMClient:
             yield chunk
 
             # Realistic typing jitter
-            delay = self.chunk_delay + random.uniform(-0.01, 0.015)
-            if any(p in chunk for p in "，。！？；"):
-                delay += 0.035
-            await asyncio.sleep(max(0.01, delay))
+            is_testing = os.getenv("PYTEST_CURRENT_TEST") is not None or settings.ENVIRONMENT == "test"
+            if is_testing:
+                await asyncio.sleep(0.0005)
+            else:
+                delay = self.chunk_delay + random.uniform(-0.01, 0.015)
+                if any(p in chunk for p in "，。！？；"):
+                    delay += 0.035
+                await asyncio.sleep(max(0.01, delay))

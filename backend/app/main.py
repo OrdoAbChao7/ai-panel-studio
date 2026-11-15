@@ -7,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.core.config import settings
+from app.infrastructure.database import init_db
+from app.infrastructure.session_manager import session_manager
 from app.interfaces.api_router import router as api_router
 from app.interfaces.sse_router import router as sse_router
 
@@ -14,9 +16,11 @@ from app.interfaces.sse_router import router as sse_router
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application startup and shutdown lifecycle manager."""
-    # Startup: Initialize DB tables / background resources
+    # Startup: Initialize SQLite database schema
+    await init_db()
     yield
-    # Shutdown: Clean up connections / sessions
+    # Shutdown: Clean up background session tasks
+    await session_manager.shutdown_all()
 
 
 app = FastAPI(
