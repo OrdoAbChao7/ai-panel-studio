@@ -120,7 +120,7 @@ class SpeakerArbitrator:
                 final_score=final_score if final_score != float("-inf") else -999.0,
             )
 
-        # Select candidate with highest score
+        # Select candidate with highest score (with secondary fairness and tertiary deterministic tie-breaker)
         valid_candidates = [
             c for c in candidates if all_scores[c.agent_id] != float("-inf")
         ]
@@ -133,7 +133,12 @@ class SpeakerArbitrator:
                 breakdown=breakdown,
             )
 
-        winner = max(valid_candidates, key=lambda c: all_scores[c.agent_id])
+        def candidate_sort_key(c: AgentIntent) -> tuple[float, float, str]:
+            score = all_scores[c.agent_id]
+            fairness = breakdown[c.agent_id].fairness
+            return (score, fairness, c.agent_id)
+
+        winner = max(valid_candidates, key=candidate_sort_key)
         return ArbitrationResult(
             winner=winner,
             winner_score=all_scores[winner.agent_id],

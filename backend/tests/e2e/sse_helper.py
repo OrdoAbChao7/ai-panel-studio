@@ -245,10 +245,17 @@ class SSECollector:
                     else:
                         current_block.append(line)
         except asyncio.CancelledError:
-            pass
+            async with self._cond:
+                self._cond.notify_all()
         except Exception as e:
             self._exception = e
             self._connected.set()
+            async with self._cond:
+                self._cond.notify_all()
+        finally:
+            self._connected.set()
+            async with self._cond:
+                self._cond.notify_all()
 
     async def wait_for_event(
         self,

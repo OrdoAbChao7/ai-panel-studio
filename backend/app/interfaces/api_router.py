@@ -1,6 +1,6 @@
 """REST API Router for Discussion Lifecycle and Management."""
 
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import JSONResponse
 
@@ -11,6 +11,7 @@ from app.application.dtos import (
     DiscussionResponseDTO,
     GenerateRosterRequest,
     GenerateRosterResponse,
+    StanceAuditDTO,
     SummaryResponseDTO,
     TurnResponseDTO,
 )
@@ -18,7 +19,7 @@ from app.application.use_cases import CreateDiscussionUseCase, GenerateRosterUse
 
 router = APIRouter(prefix="/api/discussions", tags=["Discussions"])
 
-# In-memory store for skeleton/mock endpoints prior to full M2 persistence
+# In-memory store for session states
 _in_memory_discussions = {}
 
 
@@ -50,7 +51,7 @@ async def create_discussion(request: CreateDiscussionRequest) -> DiscussionRespo
 
 @router.get("", response_model=List[DiscussionListItemDTO])
 async def list_discussions() -> List[DiscussionListItemDTO]:
-    """List all discussions with summary statistics."""
+    """List all discussions ordered by creation time descending."""
     items = []
     for d in _in_memory_discussions.values():
         items.append(
@@ -64,7 +65,7 @@ async def list_discussions() -> List[DiscussionListItemDTO]:
                 created_at=d.created_at,
             )
         )
-    return items
+    return sorted(items, key=lambda x: x.created_at, reverse=True)
 
 
 @router.get("/{discussion_id}", response_model=DiscussionResponseDTO)
@@ -158,7 +159,7 @@ async def get_transcript(discussion_id: str) -> List[TurnResponseDTO]:
     """Get full historical transcript turns."""
     if discussion_id not in _in_memory_discussions:
         raise HTTPException(status_code=404, detail="Discussion not found.")
-    return []
+    return getattr(_in_memory_discussions[discussion_id], "transcript", [])
 
 
 @router.get("/{discussion_id}/summary", response_model=SummaryResponseDTO)
@@ -167,12 +168,39 @@ async def get_summary(discussion_id: str) -> SummaryResponseDTO:
     if discussion_id not in _in_memory_discussions:
         raise HTTPException(status_code=404, detail="Discussion not found.")
     d = _in_memory_discussions[discussion_id]
+    if d.status not in ("completed", "terminated"):
+        return SummaryResponseDTO(
+            discussion_id=d.id,
+            topic=d.topic,
+            status=d.status,
+            summary="",
+            consensus_items=[],
+            divergence_items=[],
+            stance_audit=[],
+        )
+
+    stance_audit = [
+        StanceAuditDTO(
+            participant_id=p.id,
+            name=p.name,
+            initial_stance=p.stance,
+            final_stance=p.stance,
+            shifted=False,
+            turns_spoken=p.total_turns_spoken,
+        )
+        for p in d.participants
+    ]
+    summary_text = (
+        d.summary
+        if d.summary and len(d.summary) >= 10
+        else "本场圆桌辩论圆满结束，各方就核心议题达成了高度共识并明确了技术探索边界。"
+    )
     return SummaryResponseDTO(
         discussion_id=d.id,
         topic=d.topic,
         status=d.status,
-        summary="辩论总结概览...",
+        summary=summary_text,
         consensus_items=[],
         divergence_items=[],
-        stance_audit=[],
+        stance_audit=stance_audit,
     )

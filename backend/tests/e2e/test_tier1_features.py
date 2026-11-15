@@ -484,10 +484,10 @@ class TestTier1Transcript:
 
         await async_client.post(f"/api/discussions/{disc_id}/pause")
 
-        if len(turns) >= 2:
-            turn_numbers = [t["turn_number"] for t in turns]
-            expected = list(range(1, len(turns) + 1))
-            assert turn_numbers == expected, f"Turn numbers {turn_numbers} do not match expected {expected}"
+        assert len(turns) >= 2, f"Expected at least 2 turns in transcript, got {len(turns)}"
+        turn_numbers = [t["turn_number"] for t in turns]
+        expected = list(range(1, len(turns) + 1))
+        assert turn_numbers == expected, f"Turn numbers {turn_numbers} do not match expected {expected}"
 
     async def test_t1_tran_03_turn_record_schema_invariants(self, async_client: httpx.AsyncClient):
         """T1-TRAN-03: Transcript records satisfy full schema contracts and field types."""
@@ -507,16 +507,16 @@ class TestTier1Transcript:
 
         await async_client.post(f"/api/discussions/{disc_id}/terminate")
 
-        if len(turns) >= 1:
-            for turn in turns:
-                assert "id" in turn and isinstance(turn["id"], str)
-                assert "turn_number" in turn and isinstance(turn["turn_number"], int)
-                assert "speaker_id" in turn and isinstance(turn["speaker_id"], str)
-                assert "speaker_name" in turn and isinstance(turn["speaker_name"], str)
-                assert "action_type" in turn and isinstance(turn["action_type"], str)
-                assert "content" in turn and isinstance(turn["content"], str) and len(turn["content"]) > 0
-                assert "priority_score" in turn and isinstance(turn["priority_score"], (int, float))
-                assert "timestamp" in turn and isinstance(turn["timestamp"], str)
+        assert len(turns) >= 1, f"Expected at least 1 turn in transcript, got {len(turns)}"
+        for turn in turns:
+            assert "id" in turn and isinstance(turn["id"], str)
+            assert "turn_number" in turn and isinstance(turn["turn_number"], int)
+            assert "speaker_id" in turn and isinstance(turn["speaker_id"], str)
+            assert "speaker_name" in turn and isinstance(turn["speaker_name"], str)
+            assert "action_type" in turn and isinstance(turn["action_type"], str)
+            assert "content" in turn and isinstance(turn["content"], str) and len(turn["content"]) > 0
+            assert "priority_score" in turn and isinstance(turn["priority_score"], (int, float))
+            assert "timestamp" in turn and isinstance(turn["timestamp"], str)
 
     async def test_t1_tran_04_consecutive_speaker_prohibition_invariant(self, async_client: httpx.AsyncClient):
         """
@@ -539,12 +539,12 @@ class TestTier1Transcript:
 
         await async_client.post(f"/api/discussions/{disc_id}/terminate")
 
-        if len(turns) >= 2:
-            for i in range(len(turns) - 1):
-                assert turns[i]["speaker_id"] != turns[i + 1]["speaker_id"], (
-                    f"Consecutive turn violation at turns {i+1} and {i+2}: "
-                    f"Speaker '{turns[i]['speaker_name']}' ({turns[i]['speaker_id']}) spoke consecutively!"
-                )
+        assert len(turns) >= 2, f"Expected at least 2 turns in transcript, got {len(turns)}"
+        for i in range(len(turns) - 1):
+            assert turns[i]["speaker_id"] != turns[i + 1]["speaker_id"], (
+                f"Consecutive turn violation at turns {i+1} and {i+2}: "
+                f"Speaker '{turns[i]['speaker_name']}' ({turns[i]['speaker_id']}) spoke consecutively!"
+            )
 
     async def test_t1_tran_05_rebuttal_target_validity(self, async_client: httpx.AsyncClient):
         """T1-TRAN-05: Rebuttal actions target prior valid speakers; openings do not."""
@@ -564,13 +564,14 @@ class TestTier1Transcript:
 
         await async_client.post(f"/api/discussions/{disc_id}/terminate")
 
+        assert len(turns) >= 2, f"Expected at least 2 turns in transcript, got {len(turns)}"
         for idx, turn in enumerate(turns):
             if turn.get("action_type") == "rebuttal":
                 target_id = turn.get("target_speaker_id")
                 # When rebuttal occurs, target should reference an earlier speaker
                 if target_id is not None:
                     prior_speakers = {t["speaker_id"] for t in turns[:idx]}
-                    assert target_id in prior_speakers or target_id is not None
+                    assert target_id in prior_speakers, f"Rebuttal target {target_id} not in prior speakers {prior_speakers}"
             elif turn.get("action_type") in ("opening", "statement") and idx == 0:
                 assert turn.get("target_speaker_id") is None
 
@@ -701,13 +702,14 @@ class TestTier1Summary:
         stance_audit = data.get("stance_audit", [])
         assert isinstance(stance_audit, list)
 
-        if len(stance_audit) > 0:
-            assert len(stance_audit) == len(SAMPLE_PARTICIPANTS)
-            for entry in stance_audit:
-                agent_name = entry.get("agent_name") or entry.get("name")
-                assert agent_name is not None
-                assert "initial_stance" in entry
-                assert "final_stance" in entry
+        assert len(stance_audit) == len(SAMPLE_PARTICIPANTS), (
+            f"Stance audit must cover all participants, expected {len(SAMPLE_PARTICIPANTS)}, got {len(stance_audit)}"
+        )
+        for entry in stance_audit:
+            agent_name = entry.get("agent_name") or entry.get("name")
+            assert agent_name is not None
+            assert "initial_stance" in entry
+            assert "final_stance" in entry
 
     async def test_t1_summ_06_summary_read_idempotency(self, async_client: httpx.AsyncClient):
         """T1-SUMM-06: Repeated reads of discussion summary return identical payloads."""

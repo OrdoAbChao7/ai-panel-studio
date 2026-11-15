@@ -2,7 +2,7 @@
 
 from enum import Enum
 from typing import Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class SessionStatus(str, Enum):
@@ -31,6 +31,8 @@ class ActionType(str, Enum):
 class AgentIntent(BaseModel):
     """Evaluated desire and intended contribution of an expert."""
 
+    model_config = ConfigDict(frozen=True)
+
     agent_id: str
     agent_name: str
     desire_to_speak: bool = True
@@ -49,6 +51,8 @@ class AgentIntent(BaseModel):
 class SpeakerScore(BaseModel):
     """Detailed mathematical breakdown of arbitration scoring."""
 
+    model_config = ConfigDict(frozen=True)
+
     urgency: float
     conflict: float
     topical: float
@@ -63,18 +67,24 @@ class SpeakerScore(BaseModel):
 class ConsensusItem(BaseModel):
     """Synthesized point of mutual agreement across experts."""
 
+    model_config = ConfigDict(frozen=True)
+
     id: str
     statement: str
     supporting_agents: List[str] = Field(default_factory=list)
     confidence: float = Field(default=0.5, ge=0.0, le=1.0)
     resolved_turn: int = 0
+    status: str = "forming"
 
 
 class DivergenceItem(BaseModel):
     """Active point of philosophical, technical or ethical disagreement."""
+
+    model_config = ConfigDict(frozen=True)
 
     id: str
     tension: str
     opposing_stances: Dict[str, str] = Field(default_factory=dict)
     intensity: float = Field(default=0.5, ge=0.0, le=1.0)
     is_active: bool = True
+    key_conflict: Optional[str] = None

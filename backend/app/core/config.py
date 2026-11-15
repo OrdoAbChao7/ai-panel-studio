@@ -1,4 +1,4 @@
-"""Application Configuration & Environment Settings."""
+"""Application Configuration & Secure Environment Settings."""
 
 import json
 import os
@@ -11,7 +11,7 @@ load_dotenv()
 
 
 class Settings(BaseModel):
-    """Global configuration settings for AI Panel Studio."""
+    """Global configuration settings for AI Panel Studio with zero credential leakage."""
 
     # Server Network
     HOST: str = Field(default_factory=lambda: os.getenv("HOST", "127.0.0.1"))
@@ -27,7 +27,8 @@ class Settings(BaseModel):
     LLM_MAX_TOKENS: int = Field(default_factory=lambda: int(os.getenv("LLM_MAX_TOKENS", "1024")))
     LLM_TIMEOUT_SECONDS: int = Field(default_factory=lambda: int(os.getenv("LLM_TIMEOUT_SECONDS", "60")))
 
-    # Offline Mock Fallback
+    # Offline Mock Configuration
+    USE_MOCK_LLM: bool = Field(default_factory=lambda: os.getenv("USE_MOCK_LLM", "false").lower() == "true")
     ENABLE_MOCK_FALLBACK: bool = Field(
         default_factory=lambda: os.getenv("ENABLE_MOCK_FALLBACK", "true").lower() == "true"
     )
@@ -81,8 +82,31 @@ class Settings(BaseModel):
 
     @property
     def is_mock_mode(self) -> bool:
-        """Return True if system should run in Mock mode."""
-        return not self.LLM_API_KEY or self.LLM_API_KEY.lower() == "mock" or self.ENABLE_MOCK_FALLBACK
+        """Determine if system operates in zero-network Mock mode:
+
+        1. USE_MOCK_LLM is explicitly true, OR
+        2. LLM_API_KEY is missing, empty, or set to 'mock'/'none'/'dummy'/'unset', OR
+        3. LLM_MODEL is set to 'mock'.
+        """
+        if self.USE_MOCK_LLM:
+            return True
+        key = self.LLM_API_KEY.strip().lower()
+        if not key or key in ("mock", "none", "dummy", "unset", ""):
+            return True
+        if self.LLM_MODEL.strip().lower() == "mock":
+            return True
+        return False
+
+    def __repr__(self) -> str:
+        """Mask sensitive keys to prevent credential leakage in logs or debuggers."""
+        masked_key = "***" if self.LLM_API_KEY else "unset"
+        return (
+            f"Settings(ENVIRONMENT='{self.ENVIRONMENT}', LLM_MODEL='{self.LLM_MODEL}', "
+            f"is_mock_mode={self.is_mock_mode}, LLM_API_KEY='{masked_key}')"
+        )
+
+    def __str__(self) -> str:
+        return self.__repr__()
 
 
 settings = Settings()

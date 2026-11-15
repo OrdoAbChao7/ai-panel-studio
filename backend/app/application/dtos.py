@@ -137,7 +137,7 @@ class SummaryResponseDTO(BaseModel):
     discussion_id: str
     topic: str
     status: str
-    summary: str
+    summary: Optional[str] = ""
     consensus_items: List[Dict[str, Any]] = Field(default_factory=list)
     divergence_items: List[Dict[str, Any]] = Field(default_factory=list)
     stance_audit: List[StanceAuditDTO] = Field(default_factory=list)

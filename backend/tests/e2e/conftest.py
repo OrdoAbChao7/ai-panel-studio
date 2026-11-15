@@ -26,12 +26,21 @@ except (ImportError, AttributeError):
 try:
     from app.infrastructure.session_manager import get_session_manager
 except (ImportError, AttributeError):
-    get_session_manager = lambda: None
+    try:
+        from app.infrastructure.session_manager import session_manager as _sm_instance
+        get_session_manager = lambda: _sm_instance
+    except (ImportError, AttributeError):
+        get_session_manager = lambda: None
 
 try:
-    from app.core.config import get_settings
+    from app.core.config import settings, get_settings
 except (ImportError, AttributeError):
-    get_settings = lambda: None
+    try:
+        from app.core.config import settings
+        get_settings = lambda: settings
+    except (ImportError, AttributeError):
+        settings = None
+        get_settings = lambda: None
 
 from .sse_helper import SSECollector, SSEStreamReader
 
@@ -49,8 +58,23 @@ def isolate_env(monkeypatch):
     - Zero external network requests
     - Zero API cost
     - Deterministic 5-domain mock debate execution
+    - Directly patches singleton settings object and environment variables
     - Clears cached pydantic settings
     """
+    if settings is not None:
+        monkeypatch.setattr(settings, "LLM_API_KEY", "")
+        monkeypatch.setattr(settings, "LLM_BASE_URL", "")
+        monkeypatch.setattr(settings, "LLM_MODEL", "mock")
+        if hasattr(settings, "INTEGRITY_MODE"):
+            monkeypatch.setattr(settings, "INTEGRITY_MODE", "demo")
+    else:
+        try:
+            from app.core.config import settings as s
+            monkeypatch.setattr(s, "LLM_API_KEY", "")
+            monkeypatch.setattr(s, "LLM_MODEL", "mock")
+        except Exception:
+            pass
+
     monkeypatch.setenv("LLM_API_KEY", "")
     monkeypatch.setenv("LLM_BASE_URL", "")
     monkeypatch.setenv("LLM_MODEL", "mock")
@@ -67,6 +91,19 @@ def with_real_llm_env(monkeypatch):
     Fixture specifically for testing real LLM credential loading & isolation (F19).
     Injects dummy credentials that must never be leaked to client bundles or responses.
     """
+    if settings is not None:
+        monkeypatch.setattr(settings, "LLM_API_KEY", "sk-mock-production-test-key-007")
+        monkeypatch.setattr(settings, "LLM_BASE_URL", "https://api.openai.com/v1")
+        monkeypatch.setattr(settings, "LLM_MODEL", "gpt-4o")
+    else:
+        try:
+            from app.core.config import settings as s
+            monkeypatch.setattr(s, "LLM_API_KEY", "sk-mock-production-test-key-007")
+            monkeypatch.setattr(s, "LLM_BASE_URL", "https://api.openai.com/v1")
+            monkeypatch.setattr(s, "LLM_MODEL", "gpt-4o")
+        except Exception:
+            pass
+
     monkeypatch.setenv("LLM_API_KEY", "sk-mock-production-test-key-007")
     monkeypatch.setenv("LLM_BASE_URL", "https://api.openai.com/v1")
     monkeypatch.setenv("LLM_MODEL", "gpt-4o")
@@ -82,7 +119,7 @@ async def test_db(tmp_path) -> AsyncIterator[async_sessionmaker[AsyncSession]]:
     - Fully creates schema tables via Base.metadata.create_all
     - Overrides FastAPI get_db dependency
     - Resets SessionManager in-memory registry to prevent state leakage
-    - Drops tables and closes engine cleanly on teardown
+    - Drops tables and closes engine cleanly on teardown with guaranteed try...finally
     """
     db_filename = tmp_path / f"test_e2e_{uuid.uuid4().hex[:8]}.db"
     db_url = f"sqlite+aiosqlite:///{db_filename.as_posix()}"
@@ -107,23 +144,29 @@ async def test_db(tmp_path) -> AsyncIterator[async_sessionmaker[AsyncSession]]:
     if app is not None and get_db is not None:
         app.dependency_overrides[get_db] = override_get_db
     
-    # Reset in-memory session manager if present
-    session_mgr = get_session_manager() if callable(get_session_manager) else None
-    if session_mgr and hasattr(session_mgr, "reset"):
-        reset_res = session_mgr.reset()
-        if asyncio.iscoroutine(reset_res):
-            await reset_res
-        
-    yield session_maker
+    # Clean in-memory session manager if present
+    async def _clean_session_manager():
+        sm = get_session_manager() if callable(get_session_manager) else None
+        if sm is not None:
+            if hasattr(sm, "reset"):
+                reset_res = sm.reset()
+                if asyncio.iscoroutine(reset_res):
+                    await reset_res
+            elif hasattr(sm, "_sessions") and isinstance(sm._sessions, dict):
+                sm._sessions.clear()
+            elif hasattr(sm, "sessions") and isinstance(sm.sessions, dict):
+                sm.sessions.clear()
+
+    await _clean_session_manager()
     
-    # Teardown
-    if app is not None and get_db is not None:
-        app.dependency_overrides.pop(get_db, None)
-    if session_mgr and hasattr(session_mgr, "reset"):
-        reset_res = session_mgr.reset()
-        if asyncio.iscoroutine(reset_res):
-            await reset_res
-    await engine.dispose()
+    try:
+        yield session_maker
+    finally:
+        # Teardown
+        if app is not None and get_db is not None:
+            app.dependency_overrides.pop(get_db, None)
+        await _clean_session_manager()
+        await engine.dispose()
 
 
 @pytest.fixture
