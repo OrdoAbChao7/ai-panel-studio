@@ -13,6 +13,11 @@ export default function App() {
     setActiveTab('studio');
   };
 
+  const handleSelectDiscussion = (discussionId: string, targetTab: 'studio' | 'summary') => {
+    setCurrentDiscussionId(discussionId);
+    setActiveTab(targetTab);
+  };
+
   const handleDiscussionTerminated = () => {
     setActiveTab('summary');
   };
@@ -25,7 +30,10 @@ export default function App() {
       {/* Main Studio Viewport */}
       <main className="flex-1 p-6 max-w-7xl mx-auto w-full">
         {activeTab === 'create' && (
-          <DiscussionCreator onDiscussionCreated={handleDiscussionCreated} />
+          <DiscussionCreator
+            onDiscussionCreated={handleDiscussionCreated}
+            onSelectDiscussion={handleSelectDiscussion}
+          />
         )}
 
         {activeTab === 'studio' && (

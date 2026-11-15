@@ -46,11 +46,14 @@ app.include_router(sse_router)
 
 @app.get("/api/health", tags=["Health"])
 async def health_check() -> JSONResponse:
-    """Service health verification endpoint."""
+    """Service health verification endpoint with runtime mode disclosure."""
     return JSONResponse(
         content={
             "status": "ok",
             "app": "AI Panel Studio",
             "version": "0.1.0",
+            "mode": "mock" if settings.is_mock_mode else "live_llm",
+            "is_mock_mode": settings.is_mock_mode,
+            "model": "High-Fidelity Mock Engine (Offline)" if settings.is_mock_mode else settings.LLM_MODEL,
         }
     )
