@@ -75,8 +75,8 @@ ${data.stance_audit.map((s) => `| ${s.name} | ${s.initial_stance} | ${s.final_st
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] text-slate-400 gap-3">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      <div className="flex flex-col items-center justify-center min-h-[50vh] text-ink-muted gap-3">
+        <Loader2 className="w-8 h-8 animate-spin text-accent" aria-hidden="true" />
         <span className="text-sm">正在提炼生成本场辩论总结报告与立场演变审计...</span>
       </div>
     );
@@ -84,9 +84,9 @@ ${data.stance_audit.map((s) => `| ${s.name} | ${s.initial_stance} | ${s.final_st
 
   if (!data) {
     return (
-      <div className="bg-[#131B2B] border border-[#2A364F] rounded-xl p-8 max-w-3xl mx-auto text-center">
-        <h3 className="text-base font-bold text-white mb-2">暂无已选中的结题研讨</h3>
-        <p className="text-xs text-slate-400 mb-4">
+      <div className="bg-surface-raised border border-hairline rounded-xl p-8 max-w-3xl mx-auto text-center shadow-card">
+        <h3 className="text-base font-semibold text-ink mb-2">暂无已选中的结题研讨</h3>
+        <p className="text-xs text-ink-muted mb-4">
           {error || '请在话题创建页选择一场已结题的历史圆桌，或在直播间完成辩论后查看总结报告。'}
         </p>
       </div>
@@ -94,67 +94,69 @@ ${data.stance_audit.map((s) => `| ${s.name} | ${s.initial_stance} | ${s.final_st
   }
 
   return (
-    <div className="max-w-5xl mx-auto flex flex-col gap-6 pb-12">
+    <div className="max-w-5xl mx-auto flex flex-col gap-5 pb-12">
       {/* Header Card */}
-      <div className="bg-[#131B2B] border border-[#2A364F] rounded-xl p-6 shadow-xl flex items-center justify-between">
-        <div>
-          <span className="text-xs font-semibold text-blue-400 block mb-1">
+      <div className="bg-surface-raised border border-hairline rounded-xl p-6 shadow-card flex items-center justify-between gap-4 flex-wrap">
+        <div className="min-w-0">
+          <span className="text-[11px] font-medium text-accent block mb-1">
             研讨终局与审计看板 (ID: {data.discussion_id.slice(0, 8)}...)
           </span>
-          <h2 className="text-xl font-bold text-white">{data.topic}</h2>
+          <h2 className="text-xl font-semibold text-ink">{data.topic}</h2>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 shrink-0">
           <button
+            type="button"
             onClick={handleExportJSON}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1A2337] hover:bg-[#2A364F] text-slate-200 text-xs font-semibold border border-[#2A364F] transition-colors"
+            className="flex items-center gap-1.5 px-3 h-8 rounded-[8px] bg-surface-sunken hover:bg-black/[.05] text-ink text-xs font-medium border border-hairline transition-colors duration-150"
           >
-            <Download className="w-3.5 h-3.5" />
+            <Download className="w-3.5 h-3.5" aria-hidden="true" />
             导出 JSON
           </button>
           <button
+            type="button"
             onClick={handleExportMarkdown}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow transition-colors"
+            className="flex items-center gap-1.5 px-3 h-8 rounded-[8px] bg-accent hover:bg-accent-hover text-white text-xs font-medium transition-colors duration-150"
           >
-            <FileText className="w-3.5 h-3.5" />
+            <FileText className="w-3.5 h-3.5" aria-hidden="true" />
             导出 Markdown
           </button>
         </div>
       </div>
 
       {/* Moderator Concluding Synthesis */}
-      <div className="bg-[#131B2B] border border-[#2A364F] rounded-xl p-6 shadow-xl">
-        <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-          <BarChart3 className="w-4 h-4 text-purple-400" />
+      <div className="bg-surface-raised border border-hairline rounded-xl p-6 shadow-card">
+        <h3 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+          <BarChart3 className="w-4 h-4 text-ink-muted" aria-hidden="true" />
           主持人自然语言综合评述 (Moderator Synthesis)
         </h3>
-        <div className="text-xs text-slate-300 leading-relaxed bg-[#1A2337] p-4 rounded-lg border border-[#2A364F]/50 whitespace-pre-wrap">
+        <div className="text-xs text-ink-muted leading-relaxed bg-surface-sunken p-4 rounded-[10px] whitespace-pre-wrap">
           {data.summary}
         </div>
       </div>
 
       {/* Consensus & Divergence Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* Consensus */}
-        <div className="bg-[#131B2B] border border-[#2A364F] rounded-xl p-6 shadow-xl">
-          <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+        <div className="bg-surface-raised border border-hairline rounded-xl p-6 shadow-card">
+          <h3 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-positive" aria-hidden="true" />
             最终收敛共识
           </h3>
           <div className="flex flex-col gap-3">
             {data.consensus_items.length === 0 ? (
-              <p className="text-xs text-slate-500 py-4 text-center">本场讨论未达成显著共识</p>
+              <p className="text-xs text-ink-faint py-4 text-center">本场讨论未达成显著共识</p>
             ) : (
               data.consensus_items.map((c) => (
-                <div key={c.id} className="bg-[#1A2337] border border-[#2A364F] rounded-lg p-3.5">
-                  <p className="text-xs text-slate-200 mb-2 font-medium">{c.statement}</p>
-                  <div className="flex items-center justify-between text-[11px] text-slate-400">
-                    <span>
+                <div key={c.id} className="bg-surface-sunken border border-hairline rounded-[10px] p-3.5">
+                  <p className="text-xs text-ink mb-2 font-medium leading-relaxed">{c.statement}</p>
+                  <div className="flex items-center justify-between gap-3 text-[11px] text-ink-muted">
+                    <span className="truncate">
                       支持专家:{' '}
                       {Array.isArray(c.supporting_agents)
                         ? c.supporting_agents.join('、')
                         : String(c.supporting_agents)}
                     </span>
-                    <span className="text-emerald-400 font-bold">
+                    <span className="text-positive font-semibold whitespace-nowrap">
                       {(c.confidence * 100).toFixed(0)}% 可信度
                     </span>
                   </div>
@@ -165,21 +167,21 @@ ${data.stance_audit.map((s) => `| ${s.name} | ${s.initial_stance} | ${s.final_st
         </div>
 
         {/* Divergence */}
-        <div className="bg-[#131B2B] border border-[#2A364F] rounded-xl p-6 shadow-xl">
-          <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-400" />
+        <div className="bg-surface-raised border border-hairline rounded-xl p-6 shadow-card">
+          <h3 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-caution" aria-hidden="true" />
             未决核心分歧
           </h3>
           <div className="flex flex-col gap-3">
             {data.divergence_items.length === 0 ? (
-              <p className="text-xs text-slate-500 py-4 text-center">各方观点相对趋同，未见高烈度分歧</p>
+              <p className="text-xs text-ink-faint py-4 text-center">各方观点相对趋同，未见高烈度分歧</p>
             ) : (
               data.divergence_items.map((d) => (
-                <div key={d.id} className="bg-[#1A2337] border border-[#2A364F] rounded-lg p-3.5">
-                  <p className="text-xs text-slate-200 mb-2 font-medium">{d.tension}</p>
-                  <div className="flex items-center justify-between text-[11px] text-slate-400">
+                <div key={d.id} className="bg-surface-sunken border border-hairline rounded-[10px] p-3.5">
+                  <p className="text-xs text-ink mb-2 font-medium leading-relaxed">{d.tension}</p>
+                  <div className="flex items-center justify-between gap-3 text-[11px] text-ink-muted">
                     <span>双方各持论据</span>
-                    <span className="text-rose-400 font-bold">
+                    <span className="text-danger font-semibold whitespace-nowrap">
                       {(d.intensity * 100).toFixed(0)}% 冲突烈度
                     </span>
                   </div>
@@ -192,39 +194,39 @@ ${data.stance_audit.map((s) => `| ${s.name} | ${s.initial_stance} | ${s.final_st
 
       {/* Stance Evolution Audit */}
       {data.stance_audit && data.stance_audit.length > 0 && (
-        <div className="bg-[#131B2B] border border-[#2A364F] rounded-xl p-6 shadow-xl">
-          <h3 className="text-sm font-bold text-white mb-4">
+        <div className="bg-surface-raised border border-hairline rounded-xl p-6 shadow-card">
+          <h3 className="text-sm font-semibold text-ink mb-4">
             专家心智与立场演进审计 (Stance Evolution Audit)
           </h3>
           <div className="flex flex-col gap-3">
             {data.stance_audit.map((audit) => (
               <div
                 key={audit.participant_id}
-                className="bg-[#1A2337] border border-[#2A364F] rounded-lg p-4 flex flex-col md:flex-row md:items-center justify-between gap-4"
+                className="bg-surface-sunken border border-hairline rounded-[10px] p-4 flex flex-col md:flex-row md:items-center justify-between gap-4"
               >
-                <div className="w-32">
-                  <span className="font-bold text-sm text-white block">{audit.name}</span>
-                  <span className="text-[11px] text-slate-400">共发言 {audit.turns_spoken} 轮</span>
+                <div className="w-32 shrink-0">
+                  <span className="font-semibold text-sm text-ink block">{audit.name}</span>
+                  <span className="text-[11px] text-ink-muted">共发言 {audit.turns_spoken} 轮</span>
                 </div>
 
                 <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                  <div className="bg-[#0B0F17] p-2.5 rounded border border-[#2A364F]/50">
-                    <span className="text-[10px] text-slate-500 block mb-1">初始立场</span>
-                    <span className="text-slate-300">{audit.initial_stance}</span>
+                  <div className="bg-surface-raised p-2.5 rounded-[8px] border border-hairline">
+                    <span className="text-[10px] text-ink-faint block mb-1">初始立场</span>
+                    <span className="text-ink-muted">{audit.initial_stance}</span>
                   </div>
-                  <div className="bg-[#0B0F17] p-2.5 rounded border border-[#2A364F]/50">
-                    <span className="text-[10px] text-slate-500 block mb-1">最终立场</span>
-                    <span className="text-emerald-400">{audit.final_stance}</span>
+                  <div className="bg-surface-raised p-2.5 rounded-[8px] border border-hairline">
+                    <span className="text-[10px] text-ink-faint block mb-1">最终立场</span>
+                    <span className="text-ink">{audit.final_stance}</span>
                   </div>
                 </div>
 
-                <div className="w-24 text-right">
+                <div className="w-24 text-right shrink-0">
                   {audit.shifted ? (
-                    <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold">
+                    <span className="text-[11px] px-2.5 py-1 rounded-pill bg-positive/10 text-positive border border-positive/25 font-medium">
                       立场有调和
                     </span>
                   ) : (
-                    <span className="text-xs px-2.5 py-1 rounded-full bg-slate-700/50 text-slate-400 font-semibold">
+                    <span className="text-[11px] px-2.5 py-1 rounded-pill bg-surface-raised text-ink-muted border border-hairline font-medium">
                       立场坚定
                     </span>
                   )}

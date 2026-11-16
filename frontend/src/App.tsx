@@ -23,7 +23,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0F17] text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-surface text-ink flex flex-col font-sans">
       {/* Studio Header */}
       <Header activeTab={activeTab} setActiveTab={setActiveTab} />
 

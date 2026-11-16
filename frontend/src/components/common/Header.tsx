@@ -13,6 +13,12 @@ interface SystemHealth {
   model: string;
 }
 
+const TABS = [
+  { id: 'create', label: '话题创建与案库', shortLabel: '创建', Icon: Sparkles },
+  { id: 'studio', label: '辩论直播间', shortLabel: '直播', Icon: MessageSquare },
+  { id: 'summary', label: '总结审计报告', shortLabel: '总结', Icon: BarChart3 },
+] as const;
+
 export const Header: FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
   const [health, setHealth] = useState<SystemHealth | null>(null);
 
@@ -28,25 +34,25 @@ export const Header: FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
   }, []);
 
   return (
-    <header className="h-16 border-b border-[#2A364F] bg-[#131B2B]/90 backdrop-blur px-6 flex items-center justify-between sticky top-0 z-50">
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-          <Radio className="w-5 h-5 text-white animate-pulse" />
+    <header className="min-h-16 border-b border-hairline bg-surface-sidebar/90 backdrop-blur px-4 md:px-6 flex items-center justify-between gap-3 sticky top-0 z-50 flex-wrap py-2">
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="w-9 h-9 rounded-[10px] bg-accent flex items-center justify-center shrink-0">
+          <Radio className="w-5 h-5 text-white" aria-hidden="true" />
         </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-lg font-bold tracking-tight text-white">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-base md:text-lg font-semibold tracking-tight text-ink whitespace-nowrap">
               AI Panel Studio
             </h1>
-            <span className="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 font-medium">
+            <span className="hidden sm:inline text-[11px] px-2 py-0.5 rounded-pill bg-accent-soft text-accent border border-accent/20 font-medium">
               MVP
             </span>
             {health && (
               <span
-                className={`text-[11px] px-2.5 py-0.5 rounded-full flex items-center gap-1 border font-medium ${
+                className={`hidden md:flex text-[11px] px-2.5 py-0.5 rounded-pill items-center gap-1 border font-medium ${
                   health.is_mock_mode
-                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                    : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                    ? 'bg-caution/8 text-caution border-caution/25'
+                    : 'bg-positive/8 text-positive border-positive/25'
                 }`}
                 title={
                   health.is_mock_mode
@@ -56,56 +62,49 @@ export const Header: FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
               >
                 {health.is_mock_mode ? (
                   <>
-                    <Cpu className="w-3 h-3 text-amber-400" />
-                    <span>离线高仿真 Mock 引擎</span>
+                    <Cpu className="w-3 h-3 shrink-0" aria-hidden="true" />
+                    <span className="whitespace-nowrap">离线高仿真 Mock 引擎</span>
                   </>
                 ) : (
                   <>
-                    <Zap className="w-3 h-3 text-emerald-400" />
-                    <span>在线大模型: {health.model}</span>
+                    <Zap className="w-3 h-3 shrink-0" aria-hidden="true" />
+                    <span className="whitespace-nowrap">在线大模型: {health.model}</span>
                   </>
                 )}
               </span>
             )}
           </div>
-          <p className="text-xs text-slate-400">多智能体自主圆桌辩论演播室 · 零凭证暴露安全架构</p>
+          <p className="text-xs text-ink-muted truncate hidden sm:block">
+            多智能体自主圆桌辩论演播室 · 零凭证暴露安全架构
+          </p>
         </div>
       </div>
 
-      <nav className="flex items-center gap-1 bg-[#1A2337] p-1 rounded-lg border border-[#2A364F]">
-        <button
-          onClick={() => setActiveTab('create')}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-            activeTab === 'create'
-              ? 'bg-blue-600 text-white shadow'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-          }`}
-        >
-          <Sparkles className="w-3.5 h-3.5" />
-          话题创建与案库
-        </button>
-        <button
-          onClick={() => setActiveTab('studio')}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-            activeTab === 'studio'
-              ? 'bg-blue-600 text-white shadow'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-          }`}
-        >
-          <MessageSquare className="w-3.5 h-3.5" />
-          辩论直播间
-        </button>
-        <button
-          onClick={() => setActiveTab('summary')}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-            activeTab === 'summary'
-              ? 'bg-blue-600 text-white shadow'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-          }`}
-        >
-          <BarChart3 className="w-3.5 h-3.5" />
-          总结审计报告
-        </button>
+      <nav
+        className="flex items-center gap-1 bg-surface-sunken p-1 rounded-[10px] border border-hairline overflow-x-auto max-w-full"
+        aria-label="主导航"
+      >
+        {TABS.map(({ id, label, shortLabel, Icon }) => {
+          const isActive = activeTab === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setActiveTab(id)}
+              aria-current={isActive ? 'page' : undefined}
+              aria-label={label}
+              className={`flex items-center gap-2 px-3 h-8 rounded-[8px] text-xs font-medium transition-colors duration-150 whitespace-nowrap shrink-0 ${
+                isActive
+                  ? 'bg-surface-raised text-ink shadow-card'
+                  : 'text-ink-muted hover:text-ink hover:bg-white/70'
+              }`}
+            >
+              <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-accent' : ''}`} aria-hidden="true" />
+              <span className="hidden lg:inline">{label}</span>
+              <span className="lg:hidden">{shortLabel}</span>
+            </button>
+          );
+        })}
       </nav>
     </header>
   );

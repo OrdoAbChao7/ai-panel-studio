@@ -4,18 +4,42 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  // Light-only product theme: no `.dark` class is ever applied, so the
+  // previous dark-mode variants are inert.
   darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        studio: {
-          bg: '#0B0F17',
-          surface: '#131B2B',
-          card: '#1A2337',
-          border: '#2A364F',
-          muted: '#64748B',
-          text: '#F1F5F9',
+        // Semantic tokens mapped from CSS variables in index.css.
+        // Low-contrast, neutral surfaces with a single blue accent.
+        surface: {
+          DEFAULT: 'rgb(var(--surface) / <alpha-value>)',
+          raised: 'rgb(var(--surface-raised) / <alpha-value>)',
+          sidebar: 'rgb(var(--surface-sidebar) / <alpha-value>)',
+          sunken: 'rgb(var(--surface-sunken) / <alpha-value>)',
         },
+        ink: {
+          DEFAULT: 'rgb(var(--ink) / <alpha-value>)',
+          muted: 'rgb(var(--ink-muted) / <alpha-value>)',
+          faint: 'rgb(var(--ink-faint) / <alpha-value>)',
+        },
+        hairline: 'rgb(var(--border-hairline) / <alpha-value>)',
+        edge: 'rgb(var(--border-strong) / <alpha-value>)',
+        accent: {
+          DEFAULT: 'rgb(var(--accent) / <alpha-value>)',
+          hover: 'rgb(var(--accent-hover) / <alpha-value>)',
+          soft: 'rgb(var(--accent-soft) / <alpha-value>)',
+        },
+        positive: 'rgb(var(--positive) / <alpha-value>)',
+        caution: 'rgb(var(--caution) / <alpha-value>)',
+        danger: 'rgb(var(--danger) / <alpha-value>)',
+      },
+      boxShadow: {
+        card: '0 1px 2px rgba(20,20,20,.04)',
+        popover: '0 10px 32px -8px rgba(0,0,0,.14), 0 2px 8px rgba(0,0,0,.06)',
+      },
+      transitionDuration: {
+        emphasis: '160ms',
       },
       animation: {
         'pulse-glow': 'pulseGlow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
