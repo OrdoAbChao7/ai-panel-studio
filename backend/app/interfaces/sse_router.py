@@ -23,9 +23,21 @@ async def stream_discussion_events(
     db: AsyncSession = Depends(get_db),
 ) -> EventSourceResponse:
     """Stream debate events in real time with monotonic sequence IDs and ring buffer replay."""
-    # 1. Enforce existence check in database (returns 404 if missing)
+    # 1. Enforce existence check in database (returns 404 if missing).
+    #
+    # The session comes from `Depends(get_db)` so tests can override it, but it
+    # is explicitly closed *before* the stream starts. Otherwise the pooled
+    # connection stays pinned for the whole SSE lifetime (FastAPI only runs
+    # dependency cleanup when the response completes, and an SSE response
+    # never completes), and the QueuePool (5 + 10 overflow) is exhausted after
+    # a handful of viewers -- after which every REST endpoint 500s with
+    # "QueuePool limit reached".
     repo = SqlAlchemyDiscussionRepository(db)
-    agg = await repo.get_by_id(discussion_id)
+    try:
+        agg = await repo.get_by_id(discussion_id)
+    finally:
+        await db.close()
+
     if agg is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

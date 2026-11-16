@@ -12,6 +12,16 @@ export function useSSE(discussionId: string | null, onEvent?: (event: SSEEvent) 
   const lastEventIdRef = useRef<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
 
+  // Keep the latest callback in a ref so the connection is NOT torn down and
+  // rebuilt every time the caller re-renders with a new inline function.
+  // Depending on `onEvent` directly caused an EventSource reconnect storm:
+  // each event -> setState -> new render -> new onEvent identity -> new
+  // EventSource -> replay -> setState ... hundreds of requests per page view.
+  const onEventRef = useRef(onEvent);
+  useEffect(() => {
+    onEventRef.current = onEvent;
+  }, [onEvent]);
+
   useEffect(() => {
     if (!discussionId) return;
 
@@ -39,9 +49,9 @@ export function useSSE(discussionId: string | null, onEvent?: (event: SSEEvent) 
       }
       try {
         const parsed = JSON.parse(e.data);
-        onEvent?.({ id: e.lastEventId, event: type, data: parsed });
+        onEventRef.current?.({ id: e.lastEventId, event: type, data: parsed });
       } catch {
-        onEvent?.({ id: e.lastEventId, event: type, data: e.data });
+        onEventRef.current?.({ id: e.lastEventId, event: type, data: e.data });
       }
     };
 
@@ -66,7 +76,7 @@ export function useSSE(discussionId: string | null, onEvent?: (event: SSEEvent) 
       eventSource.close();
       setIsConnected(false);
     };
-  }, [discussionId, onEvent]);
+  }, [discussionId]);
 
   return { isConnected, error };
 }
